@@ -1,0 +1,27 @@
+### Consumer Metric
+spring:
+  kafka:
+    listener:
+      observation-enabled: true
+
+topic:
+  name: ${TOPIC_NAME:client_test_1}
+  partitions-num: ${TOPIC_PARTITIONS-NUM:3}
+  replication-factor: ${TOPIC_REPLICATION-FACTOR:3}
+
+kafka:
+  bootstrap-servers: ${BOOTSTRAP_SERVER:localhost:9092}
+
+### Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  level:
+    root: error
+    com.timegate: info
+    org.springframework.kafka.core: trace
+    org.apache.kafka.clients.producer: info

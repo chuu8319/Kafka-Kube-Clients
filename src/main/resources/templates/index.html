@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Kafka UI</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f5; margin: 0; padding: 2rem; color: #1a1a1a; }
+        h1  { font-size: 1.25rem; font-weight: 500; margin-bottom: 1.5rem; }
+        .card { background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+        .card p.label { font-size: 12px; color: #71717a; font-weight: 500; margin: 0 0 12px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        input, textarea, select {
+            width: 100%; padding: 8px 10px; border: 1px solid #d4d4d8;
+            border-radius: 8px; font-size: 14px; outline: none;
+            transition: border-color .15s;
+        }
+        input:focus, textarea:focus { border-color: #7c3aed; }
+        textarea { resize: vertical; min-height: 72px; }
+        button {
+            margin-top: 10px; padding: 8px 16px;
+            border: 1px solid #d4d4d8; border-radius: 8px;
+            background: #fff; font-size: 14px; cursor: pointer;
+            transition: background .15s;
+        }
+        button:hover { background: #f4f4f5; }
+        #log {
+            background: #18181b; color: #a1f4c9;
+            font-family: monospace; font-size: 12px;
+            border-radius: 8px; padding: 12px 14px;
+            min-height: 72px; white-space: pre-wrap; word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+<h1>Kafka UI</h1>
+
+<!-- 1. 토픽 생성 -->
+<div class="card">
+    <p class="label">토픽 생성 · POST /topic</p>
+    <div class="grid-2">
+        <input id="topic-name" type="text" placeholder="토픽명"/>
+        <input id="topic-partition" type="number" placeholder="파티션 수 (기본 3)" min="1"/>
+    </div>
+    <button onclick="createTopic()">토픽 생성</button>
+</div>
+
+<!-- 2. 단순 메시지 발행 -->
+<div class="card">
+    <p class="label">메시지 발행 · POST /pub</p>
+    <input id="pub-topic" type="text" placeholder="토픽명 (선택사항)"/>
+    <textarea id="pub-msg" style="margin-top:8px;" placeholder="메시지 내용"></textarea>
+    <button onclick="publish()">발행</button>
+</div>
+
+<!-- 3. 반복 발행 -->
+<div class="card">
+    <p class="label">반복 발행 · POST /pub?count&delay</p>
+    <div class="grid-3">
+        <input id="batch-topic" type="text" placeholder="토픽명 (선택사항)"/>
+        <input id="batch-count" type="number" placeholder="count" min="1"/>
+        <input id="batch-delay" type="number" placeholder="delay (Sec)" min="0"/>
+    </div>
+    <textarea id="batch-msg" style="margin-top:8px;" placeholder="메시지 내용"></textarea>
+    <button onclick="publishBatch()">반복 발행</button>
+</div>
+
+<!-- 연속 발행 섹션 -->
+<div class="card">
+    <p class="label">연속 발행 · POST /pub/start · /pub/stop</p>
+    <div class="grid-2" style="margin-top:8px;">
+        <input id="s-topic" type="text" placeholder="토픽명 (선택사항)"/>
+        <input id="s-delay" type="number" placeholder="delay (Sec)" min="0"/>
+    </div>
+    <textarea id="s-msg" style="margin-top:8px;" placeholder="메시지 내용"></textarea>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+        <button onclick="startProduce()">▶ Start</button>
+        <button onclick="stopProduce()" style="color:#dc2626; border-color:#fca5a5;">⏹ Stop</button>
+        <button onclick="stopAll()" style="color:#71717a;">⏹ Stop all</button>
+        <button onclick="fetchStatus()" style="margin-left:auto;">↻ 상태 조회</button>
+    </div>
+</div>
+
+<!-- 실행 중인 토픽 상태 -->
+<div class="card">
+    <p class="label">실행 중인 토픽</p>
+    <div id="status-list" style="display:flex; flex-wrap:wrap; gap:8px; min-height:28px;">
+        <span style="font-size:13px; color:#a1a1aa;">조회 전</span>
+    </div>
+</div>
+
+<!-- 응답 로그 -->
+<div class="card">
+    <p class="label">응답 로그</p>
+    <div id="log">[대기 중...]</div>
+</div>
+
+<script>
+    const log = (msg) => {
+        const el = document.getElementById('log');
+        el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    };
+
+    async function publish() {
+        const topic = document.getElementById('pub-topic').value.trim();
+        const msg   = document.getElementById('pub-msg').value.trim();
+        const url   = topic ? `/pub?topic=${encodeURIComponent(topic)}` : '/pub';
+        try {
+            const res = await fetch(url, { method: 'POST', body: msg, headers: {'Content-Type': 'text/plain'} });
+            log(res.ok ? `발행 성공 (${res.status})` : `오류 ${res.status}`);
+        } catch (e) { log(`요청 실패: ${e.message}`); }
+    }
+
+    async function publishBatch() {
+        const topic = document.getElementById('batch-topic').value.trim();
+        const count = document.getElementById('batch-count').value;
+        const delay = document.getElementById('batch-delay').value;
+        const msg   = document.getElementById('batch-msg').value.trim();
+        try {
+            // 토픽 유무와 관계없이 count, delay는 항상 포함
+            const params = new URLSearchParams({ count, delay });
+            if (topic) params.append('topic', topic);
+
+            const res = await fetch(`/pub?${params}`, {
+                method: 'POST', body: msg, headers: {'Content-Type': 'text/plain'}
+            });
+            log(res.ok ? `반복 발행 성공 (${res.status})` : `오류 ${res.status}`);
+        } catch (e) { log(`요청 실패: ${e.message}`); }
+    }
+
+    async function createTopic() {
+        const name      = document.getElementById('topic-name').value.trim();
+        const partition = document.getElementById('topic-partition').value;
+        const url = partition ? `/topic?topic=${encodeURIComponent(name)}&partition=${partition}`
+            : `/topic?topic=${encodeURIComponent(name)}`;
+        try {
+            const res = await fetch(url, { method: 'POST' });
+            log(res.ok ? `토픽 생성 성공 (${res.status})` : `오류 ${res.status}`);
+        } catch (e) { log(`요청 실패: ${e.message}`); }
+    }
+
+    async function startProduce() {
+        const topic = document.getElementById('s-topic').value.trim();
+        const delay = document.getElementById('s-delay').value;
+        const msg   = document.getElementById('s-msg').value.trim();
+
+        const params = new URLSearchParams({ delay });
+        if (topic) params.append('topic', topic);
+
+        try {
+            const res = await fetch(`/pub/start?${params}`, {
+                method: 'POST', body: msg, headers: {'Content-Type': 'text/plain'}
+            });
+            const text = await res.text();
+            log(res.ok ? `시작: ${text}` : `오류: ${text}`);
+            if (res.ok) fetchStatus();
+        } catch (e) { log(`요청 실패: ${e.message}`); }
+    }
+
+    async function stopProduce() {
+        const topic = document.getElementById('s-topic').value.trim();
+        const params = topic ? `?topic=${encodeURIComponent(topic)}` : '';
+        try {
+            const res  = await fetch(`/pub/stop${params}`, { method: 'POST' });
+            const text = await res.text();
+            log(res.ok ? `중지: ${text}` : `오류: ${text}`);
+            if (res.ok) fetchStatus();
+        } catch (e) { log(`요청 실패: ${e.message}`); }
+    }
+
+    async function stopAll() {
+        try {
+            const res  = await fetch('/pub/stop', { method: 'POST' });
+            const text = await res.text();
+            log(res.ok ? `전체 중지: ${text}` : `오류: ${text}`);
+            if (res.ok) fetchStatus();
+        } catch (e) { log(`요청 실패: ${e.message}`); }
+    }
+
+    async function fetchStatus() {
+        try {
+            const res  = await fetch('/pub/status', { method: 'POST' });
+            const data = await res.json();
+            const list = document.getElementById('status-list');
+
+            if (data.length === 0) {
+                list.innerHTML = '<span style="font-size:13px; color:#a1a1aa;">실행 중인 토픽 없음</span>';
+            } else {
+                list.innerHTML = data.map(topic =>
+                    `<span style="font-size:12px; padding:4px 10px; background:#dcfce7; color:#166534; border-radius:6px;">${topic}</span>`
+                ).join('');
+            }
+            log(`상태 조회 완료 (${data.length}개 실행 중)`);
+        } catch (e) { log(`상태 조회 실패: ${e.message}`); }
+    }
+</script>
+</body>
+</html>
