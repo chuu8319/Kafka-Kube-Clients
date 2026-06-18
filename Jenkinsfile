@@ -18,7 +18,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git url: 'https://your-repo-url.git', branch: 'main'
+                git url: 'https://github.com/chuu8319/Kafka-Kube-Clients.git', branch: 'main'
             }
         }
 
