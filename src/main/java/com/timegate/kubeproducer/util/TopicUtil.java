@@ -57,10 +57,8 @@ public class TopicUtil {
         try {
             Map<String, TopicDescription> result = kafkaAdmin().describeTopics(topicName);
             return !result.isEmpty();
-        } catch (UnknownTopicOrPartitionException e) {
-            return false;
         } catch (Exception e) {
-            log.error("토픽 조회 실패: {}", topicName, e);
+            log.info("토픽 조회 실패: {}", topicName);
             return false;
         }
     }

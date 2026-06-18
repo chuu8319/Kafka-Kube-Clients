@@ -46,12 +46,12 @@ public class KafkaController {
     @PostMapping(path = "/pub", params = {"count", "delay"})
     public void sendMessage(@RequestParam(value = "topic", required = false) String topic, @RequestParam("count") long messageCount, @RequestParam("delay") long delayTime, @RequestBody() String message) throws InterruptedException {
         if(topic == null || topic.isEmpty()) {
-                    if (message == null || message.isEmpty()) {
-                        log.error("Empty Input Data");
-                    } else {
-                        log.info("Input Data: name: {}", message);
-                        kafkaProducerService.sendMessage(topic, messageCount, delayTime, message);
-            }
+                            if (message == null || message.isEmpty()) {
+                                log.error("Empty Input Data");
+                            } else {
+                                log.info("Input Data: name: {}", message);
+                                kafkaProducerService.sendMessage(topic, messageCount, delayTime, message);
+                            }
         } else {
             if (message == null || message.isEmpty()) {
                 log.error("Empty Input Data");
@@ -82,17 +82,26 @@ public class KafkaController {
 
     @PostMapping("/pub/start")
     public ResponseEntity<String> startMessage(@RequestParam(value = "topic", required = false) String topicName, @RequestParam("delay") long delayTime, @RequestBody() String message) {
-        if(kafkaProducerService.isRunning(topicName)) {
-           log.warn("{} is already running", topicName);
-           return ResponseEntity.badRequest().body("already running");
+        if(topicName == null || topicName.isEmpty()) {
+            if (message == null || message.isEmpty()) {
+                log.error("Empty Input Data");
+            } else {
+                log.info("Input Data: name: {}", message);
+                kafkaProducerService.startMessage(topicName, delayTime, message);
+            }
+        } else {
+            if(kafkaProducerService.isRunning(topicName)) {
+                log.warn("{} is already running", topicName);
+                return ResponseEntity.badRequest().body("already running");
+            }
+
+            if (!topicUtil.topicExists(topicName)) {
+                topicUtil.topicCreate(topicName, 3);
+                log.info("Create Topic: name: {}", topicName);
+            } else log.info("Exist Topic: name: {}", topicName);
+
+            kafkaProducerService.startMessage(topicName, delayTime, message);
         }
-
-        if (!topicUtil.topicExists(topicName)) {
-            topicUtil.topicCreate(topicName, 3);
-            log.info("Create Topic: name: {}", topicName);
-        } else log.info("Exist Topic: name: {}", topicName);
-
-        kafkaProducerService.startMessage(topicName, delayTime, message);
         return ResponseEntity.ok("start");
     }
 
