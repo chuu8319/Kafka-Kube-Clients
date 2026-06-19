@@ -9,7 +9,7 @@ pipeline {
       - name: docker
         image: docker:29.6.0-dind
         securityContext:
-          privileged: true  # 보안 위협의 핵심 요소
+          privileged: true
         resources:
           requests:
             cpu: "1"
