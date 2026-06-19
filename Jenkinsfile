@@ -7,6 +7,14 @@ pipeline {
         TAG = ""
     }
 
+    strages {
+        stage('test') {
+            steps {
+                sh 'echo hello'
+            }
+        }
+    }
+
     stages {
         stage('init') {
             steps {
