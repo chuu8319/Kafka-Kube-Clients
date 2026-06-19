@@ -1,3 +1,7 @@
 FROM eclipse-temurin:17-jre
-COPY app.jar app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+WORKDIR /app
+
+COPY app.jar /app/app.jar
+
+ENTRYPOINT ["java","-jar","/app/app.jar"]
