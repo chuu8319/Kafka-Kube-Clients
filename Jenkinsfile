@@ -13,9 +13,7 @@ pipeline {
                 sh 'echo hello'
             }
         }
-    }
 
-    stages {
         stage('init') {
             steps {
                 script {
