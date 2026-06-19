@@ -45,7 +45,9 @@ pipeline {
             steps {
                 sh 'chmod +x ./gradlew'
                 sh './gradlew clean build -x test'
-                sh 'cp build/libs/*.jar app.jar'
+                sh 'mkdir docker-context'
+                sh 'cp build/libs/*.jar docker-context/app.jar'
+                sh 'cp Dockerfile docker-context/'
             }
         }
 
@@ -53,7 +55,7 @@ pipeline {
             steps {
                 container('docker') {
                 sh """
-                    docker build -t ${REGISTRY}/${IMAGE_NAME}:${env.TAG} .
+                    docker build -t ${REGISTRY}/${IMAGE_NAME}:${env.TAG} docker-context
                     """
                 }
 
