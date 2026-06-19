@@ -45,6 +45,7 @@ pipeline {
             steps {
                 sh 'chmod +x ./gradlew'
                 sh './gradlew clean build -x test'
+                sh 'cp build/libs/*.jar app.jar'
             }
         }
 
