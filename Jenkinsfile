@@ -1,5 +1,24 @@
 pipeline {
-    agent any
+    agent {
+            kubernetes {
+                yaml """
+    apiVersion: v1
+    kind: Pod
+    spec:
+      containers:
+      - name: docker
+        image: docker:29.6.0-dind
+        securityContext:
+          privileged: true  # 보안 위협의 핵심 요소
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+      - name: jnlp
+        image: jenkins/inbound-agent:3355.v388858a_47b_33-22
+    """
+            }
+   }
 
     environment {
         REGISTRY = "192.168.10.20:5000"
