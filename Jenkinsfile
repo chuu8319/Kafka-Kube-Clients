@@ -47,7 +47,7 @@ pipeline {
                 sh './gradlew clean build -x test'
                 sh 'mkdir docker-context'
                 sh 'cp build/libs/*.jar docker-context/app.jar'
-                sh 'cp Dockerfile docker-context/'
+                sh 'cp dockerfile docker-context/'
             }
         }
 
