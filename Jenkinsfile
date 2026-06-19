@@ -8,12 +8,6 @@ pipeline {
     }
 
     stages {
-        stage('test') {
-            steps {
-                sh 'echo hello'
-            }
-        }
-
         stage('init') {
             steps {
                 script {
@@ -38,7 +32,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh """
-                docker build -t ${REGISTRY}/${IMAGE_NAME}:${TAG} .
+                docker build -t ${REGISTRY}/${IMAGE_NAME}:${env.TAG} .
                 """
             }
         }
@@ -46,7 +40,7 @@ pipeline {
         stage('Docker Push') {
             steps {
                 sh """
-                docker push ${REGISTRY}/${IMAGE_NAME}:${TAG}
+                docker push ${REGISTRY}/${IMAGE_NAME}:${env.TAG}
                 """
             }
         }
