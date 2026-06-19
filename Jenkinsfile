@@ -45,9 +45,17 @@ pipeline {
             steps {
                 sh 'chmod +x ./gradlew'
                 sh './gradlew clean build -x test'
-                sh 'mkdir docker-context'
-                sh 'cp build/libs/*.jar docker-context/app.jar'
-                sh 'cp dockerfile docker-context/'
+            }
+        }
+
+        stage('Prepare Docker Context') {
+            steps {
+                sh """
+                rm -rf docker-context
+                mkdir -p docker-context
+                cp build/libs/*.jar docker-context/app.jar
+                cp Dockerfile docker-context/
+                """
             }
         }
 
