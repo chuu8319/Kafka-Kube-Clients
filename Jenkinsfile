@@ -50,17 +50,22 @@ pipeline {
 
         stage('Docker Build') {
             steps {
+                container('docker') {
                 sh """
-                docker build -t ${REGISTRY}/${IMAGE_NAME}:${env.TAG} .
-                """
+                    docker build -t ${REGISTRY}/${IMAGE_NAME}:${env.TAG} .
+                    """
+                }
+
             }
         }
 
         stage('Docker Push') {
             steps {
+                container('docker') {
                 sh """
-                docker push ${REGISTRY}/${IMAGE_NAME}:${env.TAG}
-                """
+                    docker push ${REGISTRY}/${IMAGE_NAME}:${env.TAG}
+                    """
+                }
             }
         }
     }
