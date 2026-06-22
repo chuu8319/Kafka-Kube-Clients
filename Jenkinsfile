@@ -1,24 +1,33 @@
 pipeline {
     agent {
-            kubernetes {
-                yaml """
-    apiVersion: v1
-    kind: Pod
-    spec:
-      containers:
-      - name: docker
-        image: docker:29.6.0-dind
-        securityContext:
-          privileged: true
-        resources:
-          requests:
-            cpu: "1"
-            memory: "2Gi"
-      - name: jnlp
-        image: jenkins/inbound-agent:3355.v388858a_47b_33-22
-    """
+        kubernetes {
+            yaml """
+            apiVersion: v1
+            kind: Pod
+            spec:
+              containers:
+              - name: docker
+                image: docker:29.6.0-dind
+                securityContext:
+                  privileged: true
+                env:
+                - name: DOCKER_DRIVER
+                  value: vfs
+                resources:
+                  requests:
+                    cpu: "1"
+                    memory: "2Gi"
+                volumeMounts:
+                - name: dind-storage
+                  mountPath: /var/lib/docker
+              - name: jnlp
+                image: jenkins/inbound-agent:3355.v388858a_47b_33-22
+              volumes:
+              - name: dind-storage
+                emptyDir: {}
+            """
             }
-   }
+        }
 
     environment {
         REGISTRY = "192.168.10.20:5000"
