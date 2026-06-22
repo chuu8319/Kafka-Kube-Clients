@@ -10,6 +10,9 @@ pipeline {
                 image: docker:29.6.0-dind
                 securityContext:
                   privileged: true
+                command:
+                - dockerd-entrypoint.sh
+                - --insecure-registry=192.168.10.20:5000
                 env:
                 - name: DOCKER_DRIVER
                   value: vfs
@@ -26,13 +29,12 @@ pipeline {
               - name: dind-storage
                 emptyDir: {}
             """
-            }
         }
+    }
 
     environment {
         REGISTRY = "192.168.10.20:5000"
         IMAGE_NAME = "kube-producer"
-        TAG = ""
     }
 
     stages {
@@ -46,7 +48,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/chuu8319/Kafka-Kube-Clients.git', branch: 'main'
+                git url: 'https://github.com', branch: 'main'
             }
         }
 
@@ -71,19 +73,18 @@ pipeline {
         stage('Docker Build') {
             steps {
                 container('docker') {
-                sh """
-                    docker build -t ${REGISTRY}/${IMAGE_NAME}:${env.TAG} docker-context
+                    sh """
+                    docker build -t \$REGISTRY/\$IMAGE_NAME:\$TAG docker-context
                     """
                 }
-
             }
         }
 
         stage('Docker Push') {
             steps {
                 container('docker') {
-                sh """
-                    docker push ${REGISTRY}/${IMAGE_NAME}:${env.TAG}
+                    sh """
+                    docker push \$REGISTRY/\$IMAGE_NAME:\$TAG
                     """
                 }
             }
